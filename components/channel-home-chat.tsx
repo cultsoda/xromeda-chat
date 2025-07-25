@@ -172,6 +172,7 @@ export default function ChannelHomeChatTab() {
         </div>
 
         {/* Quick Stats */}
+        {/*}
         <Card className="border-0 shadow-md bg-gradient-to-r from-purple-600 to-pink-600 text-white">
           <CardContent className="p-4">
             <h3 className="font-semibold mb-3">실시간 채팅 현황</h3>
@@ -191,6 +192,7 @@ export default function ChannelHomeChatTab() {
             </div>
           </CardContent>
         </Card>
+        */}
       </div>
       {/* Creator Only Chat Modal */}
       <CreatorOnlyChat isOpen={showCreatorChat} onClose={() => setShowCreatorChat(false)} />
