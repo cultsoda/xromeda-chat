@@ -163,6 +163,7 @@ export default function ChannelHomeChatTab() {
               <Button
                 variant="outline"
                 className="w-full border-gray-300 text-gray-600 hover:bg-gray-50 bg-transparent"
+                onClick={() => alert("채팅이 시작할 때 알림 발송할게요. 그 때까지 기다려주세요")}
               >
                 <Bell className="w-4 h-4 mr-2" />
                 알림받기
