@@ -6,7 +6,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { X, Users, Smile, Send, Trash2, Ban, Pause, Play } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { 
+  X, 
+  Users, 
+  Smile, 
+  Send, 
+  Trash2, 
+  Ban, 
+  Pause, 
+  Play, 
+  Settings,
+  Clock,
+  AlertTriangle,
+  MessageCircle,
+  Filter,
+  UserX,
+  Volume2,
+  VolumeX,
+  Shield,
+  Search
+} from "lucide-react"
 import ContextMenu from "./context-menu"
 import type { ContextMenuPosition } from "@/types/creator-management"
 
@@ -32,6 +52,12 @@ interface ChatManagementState {
   participantCount: number
   selectedMessageId: string | null
   showEmojiPalette: boolean
+  slowMode: number
+  isSlowModeActive: boolean
+  autoModeration: boolean
+  filterWords: string[]
+  mutedUsers: string[]
+  restrictedMode: boolean
 }
 
 interface GeneralChatManagementProps {
@@ -50,6 +76,12 @@ export default function GeneralChatManagement({
     participantCount: 332,
     selectedMessageId: null,
     showEmojiPalette: false,
+    slowMode: 0,
+    isSlowModeActive: false,
+    autoModeration: true,
+    filterWords: ["스팸", "광고", "욕설"],
+    mutedUsers: [],
+    restrictedMode: false,
   })
 
   const [messages, setMessages] = useState<GeneralChatMessage[]>([
@@ -99,20 +131,16 @@ export default function GeneralChatManagement({
       isFiltered: true,
       reactions: { "😂": 5, "👍": 3 },
     },
-    {
-      id: "msg-5",
-      userId: "user-4",
-      userName: "팬123",
-      userAvatar: "/placeholder.svg?height=40&width=40&text=팬",
-      content: "기대됩니다! 🎉",
-      timestamp: new Date(Date.now() - 60000),
-      type: "user",
-      membershipLevel: "basic",
-    },
   ])
 
   const [currentMessage, setCurrentMessage] = useState("")
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
+  const [newFilterWord, setNewFilterWord] = useState("")
+  const [slowModeInput, setSlowModeInput] = useState("0")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showFilteredOnly, setShowFilteredOnly] = useState(false)
+  
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const emojiPalette = ["😊", "😂", "❤️", "👍", "👏", "🔥", "😍", "🤔", "😢", "🎉", "💪", "🎮", "✨", "🙌", "💯"]
@@ -122,7 +150,7 @@ export default function GeneralChatManagement({
     if (!isOpen && !isFullPage) return
 
     const participantInterval = setInterval(() => {
-      setChatState((prev) => ({
+      setChatState(prev => ({
         ...prev,
         participantCount: prev.participantCount + Math.floor(Math.random() * 5) - 2,
       }))
@@ -152,7 +180,7 @@ export default function GeneralChatManagement({
           membershipLevel: Math.random() > 0.7 ? "premium" : "basic",
         }
 
-        setMessages((prev) => [...prev, newMessage])
+        setMessages(prev => [...prev, newMessage])
       }
     }, 8000)
 
@@ -183,28 +211,42 @@ export default function GeneralChatManagement({
       reactions: {},
     }
 
-    setMessages((prev) => [...prev, newMessage])
+    setMessages(prev => [...prev, newMessage])
     setCurrentMessage("")
     scrollToBottom()
   }
 
   const deleteMessage = (messageId: string) => {
-    setMessages((prev) => prev.filter((msg) => msg.id !== messageId))
+    setMessages(prev => prev.filter(msg => msg.id !== messageId))
     setContextMenu(null)
   }
 
   const blockUser = (userId: string, userName: string) => {
     // 해당 사용자의 메시지들을 숨김 처리
-    setMessages((prev) =>
-      prev.map((msg) =>
+    setMessages(prev =>
+      prev.map(msg =>
         msg.userId === userId ? { ...msg, content: "[차단된 사용자의 메시지]", isFiltered: true } : msg,
       ),
     )
     setContextMenu(null)
   }
 
+  const muteUser = (userId: string) => {
+    setChatState(prev => ({
+      ...prev,
+      mutedUsers: [...prev.mutedUsers, userId]
+    }))
+  }
+
+  const unmuteUser = (userId: string) => {
+    setChatState(prev => ({
+      ...prev,
+      mutedUsers: prev.mutedUsers.filter(id => id !== userId)
+    }))
+  }
+
   const togglePause = () => {
-    setChatState((prev) => ({ ...prev, isPaused: !prev.isPaused }))
+    setChatState(prev => ({ ...prev, isPaused: !prev.isPaused }))
     
     // 시스템 메시지 추가
     const systemMessage: GeneralChatMessage = {
@@ -218,12 +260,52 @@ export default function GeneralChatManagement({
       membershipLevel: "basic",
     }
     
-    setMessages((prev) => [...prev, systemMessage])
+    setMessages(prev => [...prev, systemMessage])
+  }
+
+  const toggleSlowMode = () => {
+    const newSlowMode = parseInt(slowModeInput) || 0
+    setChatState(prev => ({
+      ...prev,
+      slowMode: newSlowMode,
+      isSlowModeActive: newSlowMode > 0
+    }))
+
+    if (newSlowMode > 0) {
+      const systemMessage: GeneralChatMessage = {
+        id: `system-${Date.now()}`,
+        userId: "system",
+        userName: "시스템",
+        userAvatar: "",
+        content: `슬로우 모드가 활성화되었습니다 (${newSlowMode}초 간격)`,
+        timestamp: new Date(),
+        type: "system",
+        membershipLevel: "basic",
+      }
+      setMessages(prev => [...prev, systemMessage])
+    }
+  }
+
+  const addFilterWord = () => {
+    if (newFilterWord.trim() && !chatState.filterWords.includes(newFilterWord.trim())) {
+      setChatState(prev => ({
+        ...prev,
+        filterWords: [...prev.filterWords, newFilterWord.trim()]
+      }))
+      setNewFilterWord("")
+    }
+  }
+
+  const removeFilterWord = (word: string) => {
+    setChatState(prev => ({
+      ...prev,
+      filterWords: prev.filterWords.filter(w => w !== word)
+    }))
   }
 
   const addReaction = (messageId: string, emoji: string) => {
-    setMessages((prev) =>
-      prev.map((msg) => {
+    setMessages(prev =>
+      prev.map(msg => {
         if (msg.id === messageId) {
           const reactions = msg.reactions || {}
           return {
@@ -231,7 +313,7 @@ export default function GeneralChatManagement({
             reactions: {
               ...reactions,
               [emoji]: (reactions[emoji] || 0) + 1,
-            },
+            }
           }
         }
         return msg
@@ -240,7 +322,7 @@ export default function GeneralChatManagement({
   }
 
   const selectMessage = (messageId: string) => {
-    setChatState((prev) => ({
+    setChatState(prev => ({
       ...prev,
       selectedMessageId: prev.selectedMessageId === messageId ? null : messageId,
     }))
@@ -283,8 +365,16 @@ export default function GeneralChatManagement({
     }
   }
 
+  // 메시지 필터링
+  const filteredMessages = messages.filter(msg => {
+    if (showFilteredOnly && !msg.isFiltered) return false
+    if (searchTerm && !msg.content.toLowerCase().includes(searchTerm.toLowerCase()) && 
+        !msg.userName.toLowerCase().includes(searchTerm.toLowerCase())) return false
+    return true
+  })
+
   const content = (
-    <div className={isFullPage ? "h-screen bg-white flex flex-col" : "w-full max-w-4xl h-[90vh] bg-white rounded-lg flex flex-col"}>
+    <div className={isFullPage ? "h-screen bg-white flex flex-col" : "w-full max-w-5xl h-[90vh] bg-white rounded-lg flex flex-col"}>
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between rounded-t-lg">
         <div className="flex items-center gap-3">
@@ -292,6 +382,15 @@ export default function GeneralChatManagement({
           <h1 className="text-lg font-semibold text-gray-900">일반 채팅 관리</h1>
         </div>
         <div className="flex items-center gap-3">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowSettings(!showSettings)}
+            className="flex items-center gap-1"
+          >
+            <Settings className="w-4 h-4" />
+            설정
+          </Button>
           <Button
             size="sm"
             variant={chatState.isPaused ? "default" : "outline"}
@@ -314,6 +413,106 @@ export default function GeneralChatManagement({
         </div>
       </div>
 
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="bg-gray-50 border-b border-gray-200 p-4 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* 슬로우 모드 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">슬로우 모드</label>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  value={slowModeInput}
+                  onChange={(e) => setSlowModeInput(e.target.value)}
+                  placeholder="초"
+                  className="w-20"
+                />
+                <Button size="sm" onClick={toggleSlowMode}>
+                  {chatState.isSlowModeActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  {chatState.isSlowModeActive ? "해제" : "적용"}
+                </Button>
+              </div>
+              {chatState.isSlowModeActive && (
+                <p className="text-xs text-gray-500">{chatState.slowMode}초 간격으로 메시지 전송 제한</p>
+              )}
+            </div>
+
+            {/* 필터 단어 관리 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">금칙어 필터</label>
+              <div className="flex gap-2">
+                <Input
+                  value={newFilterWord}
+                  onChange={(e) => setNewFilterWord(e.target.value)}
+                  placeholder="단어 추가"
+                  className="flex-1"
+                  onKeyPress={(e) => e.key === "Enter" && addFilterWord()}
+                />
+                <Button size="sm" onClick={addFilterWord}>
+                  <Shield className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {chatState.filterWords.map(word => (
+                  <Badge key={word} variant="secondary" className="text-xs">
+                    {word}
+                    <button 
+                      onClick={() => removeFilterWord(word)}
+                      className="ml-1 hover:text-red-600"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* 검색 및 필터 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">메시지 검색/필터</label>
+              <div className="flex gap-2">
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="사용자명 또는 메시지 검색"
+                  className="flex-1"
+                />
+                <Button
+                  size="sm"
+                  variant={showFilteredOnly ? "default" : "outline"}
+                  onClick={() => setShowFilteredOnly(!showFilteredOnly)}
+                >
+                  <Filter className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* 자동 조절 토글 */}
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={chatState.autoModeration}
+                onChange={(e) => setChatState(prev => ({ ...prev, autoModeration: e.target.checked }))}
+                className="rounded"
+              />
+              <span className="text-sm">자동 조절 활성화</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={chatState.restrictedMode}
+                onChange={(e) => setChatState(prev => ({ ...prev, restrictedMode: e.target.checked }))}
+                className="rounded"
+              />
+              <span className="text-sm">제한 모드 (멤버십 전용)</span>
+            </label>
+          </div>
+        </div>
+      )}
+
       {/* Chat Status Info */}
       {chatState.isPaused && (
         <div className="bg-yellow-50 border-b border-yellow-200 p-3">
@@ -326,7 +525,7 @@ export default function GeneralChatManagement({
 
       {/* Chat Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
-        {messages.map((message) => (
+        {filteredMessages.map((message) => (
           <div key={message.id} className="space-y-2">
             {message.type === "system" ? (
               <div className="flex justify-center">
@@ -360,6 +559,9 @@ export default function GeneralChatManagement({
                       {message.userName}
                     </span>
                     {getMembershipBadge(message.membershipLevel, message.type)}
+                    {chatState.mutedUsers.includes(message.userId) && (
+                      <Badge className="bg-red-100 text-red-700 text-xs">음소거</Badge>
+                    )}
                     <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
                   </div>
 
@@ -374,6 +576,9 @@ export default function GeneralChatManagement({
                     <p className="text-gray-900">
                       {message.content}
                       {message.isFiltered && <span className="text-xs text-gray-500 ml-2">(필터링됨)</span>}
+                      {message.originalContent && (
+                        <span className="text-xs text-gray-400 block mt-1">원본: {message.originalContent}</span>
+                      )}
                     </p>
                   </div>
 
