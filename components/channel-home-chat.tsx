@@ -30,7 +30,16 @@ export default function ChannelHomeChatTab() {
 
   const handleJoinChat = (chatType: string) => {
     if (isMobile) {
-      // 모바일: 풀스크린 모달
+      // 모바일: 채팅 상태 설정하고 바로 풀스크린 열기
+      setChatUIState({
+        isActive: true,  
+        isMinimized: false,
+        isMiniBar: false, // 처음에는 풀스크린으로 시작
+        currentRoom: chatType,
+        joinTime: Date.now(),
+      })
+      
+      // 바로 풀스크린 채팅 열기
       if (chatType === "creator-only") {
         setShowCreatorChat(true)
       } else if (chatType === "live-chat") {
@@ -42,25 +51,9 @@ export default function ChannelHomeChatTab() {
     }
   }
 
-  // 탭 변경 핸들러 - 모바일에서는 미니바 표시/숨김
+  // 탭 변경 핸들러
   const handleTabChange = (tab: string) => {
     setActiveTab(tab)
-    
-    if (isMobile && chatUIState.isActive) {
-      if (tab !== "채팅") {
-        // 다른 탭으로 이동하면 미니바로 변경
-        setChatUIState(prev => ({
-          ...prev,
-          isMiniBar: true
-        }))
-      } else {
-        // 채팅 탭으로 돌아오면 미니바 해제
-        setChatUIState(prev => ({
-          ...prev,
-          isMiniBar: false
-        }))
-      }
-    }
   }
 
   const tabs = ["홈", "멤버십", "채팅", "게시판", "소개"]
@@ -89,9 +82,14 @@ export default function ChannelHomeChatTab() {
       </div>
 
       {/* Main Content Area */}
-      <div className={`max-w-7xl mx-auto flex ${!isMobile && chatUIState.isActive ? 'gap-6' : ''}`}>
-        {/* Left Content */}
-        <div className={`flex-1 p-4 space-y-4 ${!isMobile && chatUIState.isActive ? 'max-w-3xl' : 'max-w-md mx-auto'}`}>
+      <div className="max-w-7xl mx-auto">
+        <div className={`flex ${!isMobile && chatUIState.isActive ? 'gap-6' : 'justify-center'}`}>
+          {/* Left Content */}
+          <div className={`p-4 space-y-4 transition-all duration-300 ${
+            !isMobile && chatUIState.isActive 
+              ? 'flex-1 max-w-3xl' 
+              : 'w-full max-w-md'
+          }`}>
           {/* Creator Profile Header */}
           <div className="text-center py-4">
             <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
@@ -137,8 +135,8 @@ export default function ChannelHomeChatTab() {
             </CardContent>
           </Card>
 
-          {/* Chat Rooms - Only show on mobile or when chat is not active on PC */}
-          {(isMobile || !chatUIState.isActive) && (
+          {/* Chat Rooms - Always show, but hide on PC when chat is active */}
+          {!((!isMobile && chatUIState.isActive)) && (
             <div className="space-y-4">
               {/* Creator Only Chat */}
               <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300">
@@ -242,7 +240,7 @@ export default function ChannelHomeChatTab() {
 
         {/* PC Right Sidebar Chat */}
         {!isMobile && chatUIState.isActive && (
-          <div className="w-96 h-screen sticky top-16">
+          <div className="w-96 sticky top-16 h-[calc(100vh-4rem)]">
             <SidebarChat 
               roomType={chatUIState.currentRoom || ""}
               isMinimized={chatUIState.isMinimized}
@@ -253,13 +251,21 @@ export default function ChannelHomeChatTab() {
         )}
       </div>
 
-      {/* Mobile Mini Chat Bar */}
-      {isMobile && chatUIState.isMiniBar && (
+      {/* Mobile Mini Chat Bar - 채팅이 활성화되어 있으면 항상 표시 */}
+      {isMobile && chatUIState.isActive && chatUIState.isMiniBar && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50">
           <div className="flex items-center justify-between">
             <div 
               className="flex-1 cursor-pointer" 
-              onClick={() => setChatUIState(prev => ({...prev, isMiniBar: false}))}
+              onClick={() => {
+                // 미니바 클릭 시 풀스크린 채팅 열기
+                setChatUIState(prev => ({...prev, isMiniBar: false}))
+                if (chatUIState.currentRoom === "creator-only") {
+                  setShowCreatorChat(true)
+                } else if (chatUIState.currentRoom === "live-chat") {
+                  setShowGeneralChat(true)
+                }
+              }}
             >
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -278,8 +284,26 @@ export default function ChannelHomeChatTab() {
       )}
 
       {/* Mobile Chat Modals */}
-      <CreatorOnlyChat isOpen={showCreatorChat} onClose={() => setShowCreatorChat(false)} />
-      <GeneralChat isOpen={showGeneralChat} onClose={() => setShowGeneralChat(false)} />
+      <CreatorOnlyChat 
+        isOpen={showCreatorChat} 
+        onClose={() => {
+          setShowCreatorChat(false)
+          // 풀스크린 채팅 종료 시 미니바로 전환
+          if (isMobile && chatUIState.isActive) {
+            setChatUIState(prev => ({...prev, isMiniBar: true}))
+          }
+        }} 
+      />
+      <GeneralChat 
+        isOpen={showGeneralChat} 
+        onClose={() => {
+          setShowGeneralChat(false)
+          // 풀스크린 채팅 종료 시 미니바로 전환
+          if (isMobile && chatUIState.isActive) {
+            setChatUIState(prev => ({...prev, isMiniBar: true}))
+          }
+        }} 
+      />
     </div>
   )
 }

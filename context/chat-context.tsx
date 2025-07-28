@@ -85,14 +85,14 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   })
 
   const joinChatRoom = (roomId: string) => {
-    setChatUIState({
-      isActive: true,
-      isMinimized: false,
-      isMiniBar: false,
-      currentRoom: roomId,
-      joinTime: Date.now(),
-    })
-  }
+  setChatUIState({
+    isActive: true,
+    isMinimized: false,
+    isMiniBar: false,
+    currentRoom: roomId,
+    joinTime: Date.now(),
+  })
+}
 
   const leaveChatRoom = () => {
     setChatUIState({
