@@ -147,41 +147,71 @@ export default function ChannelHomeChatTab() {
               <p className="text-gray-600 text-sm">게임 & 토크 스트리머</p>
             </div>
 
-            {/* Popular Content Section (PC Only when Chat Active) */}
-            {!isMobile && chatUIState.isActive && (
-              <Card className="mb-4">
+            {/* Popular Content Section - 삭제됨 */}
+
+            {/* Announcement Section - 2분할시 맨 위로 */}
+            {(!isMobile && chatUIState.isActive) && (
+              <Card className="border-l-4 border-l-blue-500 bg-blue-50 mb-4">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold mb-3">🔥 인기 콘텐츠</h3>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
-                      <div className="w-12 h-8 bg-gray-200 rounded"></div>
-                      <div>
-                        <p className="text-sm font-medium">Revenge Room [2]</p>
-                        <p className="text-xs text-gray-500">조회수 1.2M</p>
-                      </div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Megaphone className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-blue-900">📢 공지사항</span>
+                  </div>
+                  <p className="text-sm text-blue-800">오늘 오후 8시에 라이브 채팅을 진행할 예정입니다!</p>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* 2분할시 라이브 채팅 카드만 표시 */}
+            {(!isMobile && chatUIState.isActive) && (
+              <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300">
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                      <h3 className="font-semibold text-gray-900">모모리나의 라이브 채팅</h3>
                     </div>
-                    <div className="flex items-center gap-3 p-2 rounded hover:bg-gray-50">
-                      <div className="w-12 h-8 bg-gray-200 rounded"></div>
-                      <div>
-                        <p className="text-sm font-medium">2nd Anniversary</p>
-                        <p className="text-xs text-gray-500">조회수 856K</p>
-                      </div>
+                    <Badge className="bg-green-100 text-green-700 text-xs">🟢 활성</Badge>
+                  </div>
+
+                  <p className="text-sm text-gray-600 mb-3">팬들과 함께 자유롭게 대화해보세요</p>
+
+                  <div className="bg-gray-50 rounded-lg p-3 mb-3">
+                    <p className="text-sm text-gray-700">"{latestMessages["live-chat"]}"</p>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <Users className="w-3 h-3" />
+                        <span className="font-medium text-green-600">{participantCounts["live-chat"]}</span>명 참여 중
+                      </span>
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {getTimeElapsed(broadcastStartTime)}
+                      </span>
                     </div>
+                  </div>
+
+                  <div className="text-center text-gray-500 text-sm">
+                    <p>우측 채팅창에서 실시간으로 대화하세요</p>
                   </div>
                 </CardContent>
               </Card>
             )}
 
-            {/* Announcement Section */}
-            <Card className="border-l-4 border-l-blue-500 bg-blue-50">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Megaphone className="w-4 h-4 text-blue-600" />
-                  <span className="font-semibold text-blue-900">📢 공지사항</span>
-                </div>
-                <p className="text-sm text-blue-800">오늘 오후 8시에 라이브 채팅을 진행할 예정입니다!</p>
-              </CardContent>
-            </Card>
+            {/* Announcement Section - 일반 상태 */}
+            {!(!isMobile && chatUIState.isActive) && (
+              <Card className="border-l-4 border-l-blue-500 bg-blue-50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Megaphone className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-blue-900">📢 공지사항</span>
+                  </div>
+                  <p className="text-sm text-blue-800">오늘 오후 8시에 라이브 채팅을 진행할 예정입니다!</p>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Chat Rooms - Always show, but hide on PC when chat is active */}
             {!((!isMobile && chatUIState.isActive)) && (
@@ -379,36 +409,160 @@ function SidebarChat({ roomType, onClose }: {
   roomType: string
   onClose: () => void
 }) {
+  const [currentMessage, setCurrentMessage] = useState("")
+  const [messages] = useState([
+    {
+      id: "1",
+      userName: "모모리나",
+      userType: "creator",
+      membershipLevel: "크리에이터",
+      content: "안녕하세요! 오늘도 함께해주셔서 감사합니다 ✨",
+      timestamp: "오후 10:29",
+      reactions: { "❤": 45, "👍": 23, "🔥": 67 }
+    },
+    {
+      id: "2", 
+      userName: "게임러버123",
+      userType: "user",
+      membershipLevel: "기본멤버십",
+      content: "안녕하세요! 오늘 방송 재밌어요",
+      timestamp: "오후 10:30",
+      reactions: { "👍": 12, "😊": 8 }
+    },
+    {
+      id: "3",
+      userName: "후원왕", 
+      userType: "user",
+      membershipLevel: "후원멤버십",
+      content: "오늘도 화이팅하세요! 응원합니다 💪",
+      timestamp: "오후 10:31", 
+      reactions: { "💪": 34, "❤": 19, "👏": 15 }
+    },
+    {
+      id: "4",
+      userName: "익명팬",
+      userType: "user", 
+      membershipLevel: "기본멤버십",
+      content: "이 ***** 정말 재밌네요! (필터링됨)",
+      timestamp: "오후 10:32",
+      reactions: { "😂": 5, "👍": 3 }
+    }
+  ])
+
+  const handleSendMessage = () => {
+    if (!currentMessage.trim()) return
+    // 실제로는 메시지 전송 로직 구현
+    console.log("Sending message:", currentMessage)
+    setCurrentMessage("")
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
   return (
     <div className="h-full bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <h3 className="font-semibold text-gray-900 text-sm">
-            {roomType === "creator-only" ? "크리에이터 전용" : "라이브 채팅"}
-          </h3>
+          <h3 className="font-semibold text-gray-900 text-sm">모모리나의 라이브 채팅</h3>
         </div>
-        <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0">
-          <X className="w-4 h-4" />
-        </Button>
+        <div className="flex items-center gap-2">
+          <Badge className="bg-green-100 text-green-700 text-xs">🟢 활성</Badge>
+          <span className="text-xs text-gray-500">👥 317명</span>
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0">
+            <X className="w-4 h-4" />
+          </Button>
+        </div>
       </div>
       
-      {/* Chat Content */}
-      <div className="flex-1 flex flex-col">
-        <div className="flex-1 p-4 bg-gray-50">
-          <div className="text-center text-gray-500 text-sm">
-            <p>채팅이 연결되었습니다</p>
-            <p className="text-xs mt-1">새로운 메시지부터 표시됩니다</p>
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {messages.map((message) => (
+          <div key={message.id} className="space-y-2">
+            <div className="flex items-start gap-3">
+              {/* Avatar */}
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
+                message.userType === "creator" 
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500" 
+                  : "bg-gray-400"
+              }`}>
+                {message.userName.charAt(0)}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                {/* User Info */}
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`font-semibold text-sm ${
+                    message.userType === "creator" ? "text-purple-700" : "text-gray-900"
+                  }`}>
+                    {message.userName}
+                  </span>
+                  <Badge className={`text-xs ${
+                    message.userType === "creator" 
+                      ? "bg-purple-100 text-purple-700"
+                      : message.membershipLevel === "후원멤버십"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {message.membershipLevel}
+                  </Badge>
+                  <span className="text-xs text-gray-500">{message.timestamp}</span>
+                </div>
+
+                {/* Message Content */}
+                <div className="bg-white rounded-lg p-2 shadow-sm">
+                  <p className="text-sm text-gray-900">{message.content}</p>
+                </div>
+
+                {/* Reactions */}
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  {Object.entries(message.reactions).map(([emoji, count]) => (
+                    <button
+                      key={emoji}
+                      className="flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-100 hover:bg-gray-200 transition-colors"
+                    >
+                      <span>{emoji}</span>
+                      <span className="font-medium">{count}</span>
+                    </button>
+                  ))}
+                  <button className="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+                    <span className="text-xs">😊</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div className="p-4 border-t bg-white">
-          <Button 
-            size="sm" 
-            className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
-            onClick={() => {/* 채팅 입력 로직 */}}
+        ))}
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 border-t bg-white rounded-b-lg">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 relative">
+            <input
+              type="text"
+              value={currentMessage}
+              onChange={(e) => setCurrentMessage(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="메시지를 입력하세요......(500자 제한)"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              maxLength={500}
+            />
+            <span className="absolute right-3 top-2 text-xs text-gray-400">
+              {currentMessage.length}/500
+            </span>
+          </div>
+          <Button
+            onClick={handleSendMessage}
+            disabled={!currentMessage.trim()}
+            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2"
           >
-            채팅 입력하기
+            전송
           </Button>
         </div>
       </div>
