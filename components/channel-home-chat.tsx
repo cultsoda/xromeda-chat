@@ -410,6 +410,7 @@ function SidebarChat({ roomType, onClose }: {
   onClose: () => void
 }) {
   const [currentMessage, setCurrentMessage] = useState("")
+  const [restrictionDemo, setRestrictionDemo] = useState<"none" | "cooldown" | "blocked" | "paused">("none")
   const [messages] = useState([
     {
       id: "1",
@@ -463,6 +464,23 @@ function SidebarChat({ roomType, onClose }: {
     }
   }
 
+  const isInputDisabled = () => {
+    return restrictionDemo === "cooldown" || restrictionDemo === "blocked" || restrictionDemo === "paused"
+  }
+
+  const getPlaceholderText = () => {
+    switch (restrictionDemo) {
+      case "cooldown":
+        return "1분 쿨타임 중입니다 (45초 남음)"
+      case "blocked":
+        return "1시간 차단됨 - 부적절한 언어 사용"
+      case "paused":
+        return "전체 채팅이 일시정지되었습니다"
+      default:
+        return "메시지를 입력하세요......(500자 제한)"
+    }
+  }
+
   return (
     <div className="h-full bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col">
       {/* Header */}
@@ -479,6 +497,74 @@ function SidebarChat({ roomType, onClose }: {
           </Button>
         </div>
       </div>
+
+      {/* Demo Controls - PC 버전 */}
+      <div className="bg-gray-100 p-2 flex gap-2 text-xs border-b">
+        <Button
+          size="sm"
+          variant={restrictionDemo === "none" ? "default" : "outline"}
+          onClick={() => setRestrictionDemo("none")}
+          className="h-6 text-xs px-2"
+        >
+          정상
+        </Button>
+        <Button
+          size="sm"
+          variant={restrictionDemo === "cooldown" ? "default" : "outline"}
+          onClick={() => setRestrictionDemo("cooldown")}
+          className="h-6 text-xs px-2"
+        >
+          쿨타임
+        </Button>
+        <Button
+          size="sm"
+          variant={restrictionDemo === "blocked" ? "default" : "outline"}
+          onClick={() => setRestrictionDemo("blocked")}
+          className="h-6 text-xs px-2"
+        >
+          차단
+        </Button>
+        <Button
+          size="sm"
+          variant={restrictionDemo === "paused" ? "default" : "outline"}
+          onClick={() => setRestrictionDemo("paused")}
+          className="h-6 text-xs px-2"
+        >
+          일시정지
+        </Button>
+      </div>
+
+      {/* Restriction Warning */}
+      {restrictionDemo !== "none" && (
+        <div className="bg-red-50 border-b border-red-200 p-3">
+          {restrictionDemo === "cooldown" && (
+            <div className="flex items-center gap-2 text-red-700">
+              <span className="text-sm font-medium">
+                ⚠️ 1분 쿨타임이 적용되었습니다. (45초 남음)
+              </span>
+            </div>
+          )}
+          {restrictionDemo === "blocked" && (
+            <div className="text-red-700">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-medium">🚫 채팅이 제한되었습니다</span>
+              </div>
+              <div className="text-sm space-y-1">
+                <p>1시간 차단 - 남은 시간: 47분 23초</p>
+                <p>사유: 부적절한 언어 사용</p>
+                <p>문의사항이 있으시면 고객센터로 연락해주세요</p>
+              </div>
+            </div>
+          )}
+          {restrictionDemo === "paused" && (
+            <div className="flex items-center gap-2 text-yellow-700">
+              <span className="text-sm font-medium">
+                🟡 전체 채팅 일시정지 - 남은 시간: 8분 32초
+              </span>
+            </div>
+          )}
+        </div>
+      )}
       
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
@@ -549,17 +635,24 @@ function SidebarChat({ roomType, onClose }: {
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="메시지를 입력하세요......(500자 제한)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              placeholder={getPlaceholderText()}
+              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                isInputDisabled() 
+                  ? "border-red-300 bg-red-50 text-red-500 placeholder-red-400 cursor-not-allowed" 
+                  : "border-gray-300"
+              }`}
               maxLength={500}
+              disabled={isInputDisabled()}
             />
-            <span className="absolute right-3 top-2 text-xs text-gray-400">
-              {currentMessage.length}/500
-            </span>
+            {!isInputDisabled() && (
+              <span className="absolute right-3 top-2 text-xs text-gray-400">
+                {currentMessage.length}/500
+              </span>
+            )}
           </div>
           <Button
             onClick={handleSendMessage}
-            disabled={!currentMessage.trim()}
+            disabled={!currentMessage.trim() || isInputDisabled()}
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2"
           >
             전송
