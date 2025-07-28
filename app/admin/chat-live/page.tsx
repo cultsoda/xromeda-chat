@@ -18,7 +18,14 @@ function ChatLiveContent() {
             onClose={() => window.close()}
             isFullPage={true}
           />
+        ) : roomType === 'general-chat' || roomType === 'general' ? (
+          <GeneralChatManagement 
+            isOpen={true} 
+            onClose={() => window.close()}
+            isFullPage={true}
+          />
         ) : (
+          // 기본값으로 일반 채팅 표시
           <GeneralChatManagement 
             isOpen={true} 
             onClose={() => window.close()}
