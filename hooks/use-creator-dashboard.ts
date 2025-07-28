@@ -216,6 +216,7 @@ export function useCreatorDashboard() {
     showGeneralChatManagement,
     setShowGeneralChatManagement,
     handleCreateRoom,
+    setIsEditingAnnouncement,
     setChatRooms,
   }
 }

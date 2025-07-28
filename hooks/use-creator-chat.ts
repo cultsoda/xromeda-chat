@@ -93,6 +93,7 @@ export function useCreatorChat() {
     }
   }
 
+
   return {
     participantCount,
     messages,
