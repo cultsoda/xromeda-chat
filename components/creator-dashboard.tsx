@@ -82,7 +82,18 @@ export default function CreatorDashboard() {
 
   const handleChatManagement = (roomType: string) => {
     const isMobile = window.innerWidth < 1024
-    const url = `/admin/chat-live?room=${roomType}`
+    
+    // roomType에 따라 적절한 URL 파라미터 설정
+    let urlParam = roomType
+    if (roomType === 'general') {
+      urlParam = 'general-chat'  // 일반 채팅
+    } else if (roomType === 'creator-only') {
+      urlParam = 'creator-only'  // 크리에이터 전용
+    }
+    
+    console.log('Opening chat management for:', roomType, '-> URL param:', urlParam) // 디버깅용
+    
+    const url = `/admin/chat-live?room=${urlParam}`
 
     if (isMobile) {
       // 모바일: 새 탭
