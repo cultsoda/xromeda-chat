@@ -1,11 +1,10 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
 import {
   Users,
@@ -84,13 +83,13 @@ export default function CreatorDashboard() {
   const handleChatManagement = (roomType: string) => {
     const isMobile = window.innerWidth < 1024
     const url = `/admin/chat-live?room=${roomType}`
-    
+
     if (isMobile) {
       // 모바일: 새 탭
-      window.open(url, '_blank')
+      window.open(url, "_blank")
     } else {
       // PC: 새 창
-      window.open(url, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes')
+      window.open(url, "_blank", "width=800,height=600,resizable=yes,scrollbars=yes")
     }
   }
 
@@ -126,9 +125,9 @@ export default function CreatorDashboard() {
           </div>
         </div>
 
-        {/* Statistics Cards */}
+        {/* --- 통계 카드 영역 주석 처리 --- */}
+        {/*
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Today's Stats */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">오늘의 통계</CardTitle>
@@ -152,7 +151,6 @@ export default function CreatorDashboard() {
             </CardContent>
           </Card>
 
-          {/* Popular Keywords */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">인기 키워드 TOP5</CardTitle>
@@ -174,7 +172,6 @@ export default function CreatorDashboard() {
             </CardContent>
           </Card>
 
-          {/* Auto Block Stats */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">자동 차단</CardTitle>
@@ -198,6 +195,7 @@ export default function CreatorDashboard() {
             </CardContent>
           </Card>
         </div>
+        */}
 
         {/* Announcement Section */}
         <Card>
@@ -300,6 +298,8 @@ export default function CreatorDashboard() {
                   <div>메시지: {room.messageCount}개</div>
                 </div>
 
+                {/* --- 크리에이터 전용 채팅 영역 주석 처리 --- */}
+                {/*
                 {room.type === "creator-only" && (
                   <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-2">
@@ -323,6 +323,7 @@ export default function CreatorDashboard() {
                     </div>
                   </div>
                 )}
+                */}
               </div>
             ))}
 
@@ -339,56 +340,31 @@ export default function CreatorDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">자동 관리 설정</CardTitle>
+              <CardDescription className="text-sm text-gray-500 pt-1">
+                각 기능을 설정할 수 있는 기능은 추후 제공 예정입니다.
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="spam-filter"
-                  checked={autoModerationSettings.enableSpamFilter}
-                  onCheckedChange={(checked) => updateAutoModeration("enableSpamFilter", !!checked)}
-                />
-                <Label htmlFor="spam-filter">스팸 필터 활성화</Label>
+              <div>
+                <Label className="font-semibold">스팸 필터</Label>
+                <p className="text-sm text-gray-600 mt-1">과도한 홍보, 광고성 메시지를 자동으로 필터링합니다.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="profanity-filter"
-                  checked={autoModerationSettings.enableProfanityFilter}
-                  onCheckedChange={(checked) => updateAutoModeration("enableProfanityFilter", !!checked)}
-                />
-                <Label htmlFor="profanity-filter">욕설 필터 활성화</Label>
+              <div>
+                <Label className="font-semibold">욕설 필터</Label>
+                <p className="text-sm text-gray-600 mt-1">부적절한 언어, 욕설을 자동으로 필터링합니다.</p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="flood-protection"
-                  checked={autoModerationSettings.enableFloodProtection}
-                  onCheckedChange={(checked) => updateAutoModeration("enableFloodProtection", !!checked)}
-                />
-                <Label htmlFor="flood-protection">도배 방지 활성화</Label>
+              <div>
+                <Label className="font-semibold">도배 방지</Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  단시간 내에 동일하거나 유사한 메시지를 반복적으로 보내는 행위를 방지합니다.
+                </p>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="slow-mode"
-                  checked={autoModerationSettings.slowModeEnabled}
-                  onCheckedChange={(checked) => updateAutoModeration("slowModeEnabled", !!checked)}
-                />
-                <Label htmlFor="slow-mode">슬로우 모드 활성화</Label>
+              <div>
+                <Label className="font-semibold">슬로우 모드</Label>
+                <p className="text-sm text-gray-600 mt-1">
+                  채팅 입력 간격을 조절하여 과열된 채팅 분위기를 진정시킬 수 있습니다.
+                </p>
               </div>
-              {autoModerationSettings.slowModeEnabled && (
-                <div className="ml-6">
-                  <Label htmlFor="slow-seconds" className="text-sm">
-                    슬로우 모드 간격 (초)
-                  </Label>
-                  <Input
-                    id="slow-seconds"
-                    type="number"
-                    value={autoModerationSettings.slowModeSeconds}
-                    onChange={(e) => updateAutoModeration("slowModeSeconds", Number.parseInt(e.target.value) || 30)}
-                    className="w-20 mt-1"
-                    min="5"
-                    max="300"
-                  />
-                </div>
-              )}
             </CardContent>
           </Card>
 
@@ -453,10 +429,7 @@ export default function CreatorDashboard() {
                             <Download className="w-4 h-4 mr-1" />
                             채팅 기록
                           </Button>
-                          <Button size="sm" variant="outline">
-                            <Shield className="w-4 h-4 mr-1" />
-                            제재 기록
-                          </Button>
+                          {/* --- 제재 기록 버튼 제거 --- */}
                         </div>
                       </td>
                     </tr>

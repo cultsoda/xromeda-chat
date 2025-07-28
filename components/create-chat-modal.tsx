@@ -86,7 +86,8 @@ export default function CreateChatModal({
               onValueChange={(value) => setSelectedType(value as "creator-only" | "general")}
               className="space-y-4"
             >
-              {/* Creator Only Chat */}
+              {/* --- 크리에이터 전용 채팅 카드 주석 처리 --- */}
+              {/*
               <div className={`relative ${isCreatorOnlyDisabled ? "opacity-50" : ""}`}>
                 <div className="flex items-start space-x-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <RadioGroupItem
@@ -113,6 +114,7 @@ export default function CreateChatModal({
                   </div>
                 </div>
               </div>
+              */}
 
               {/* General Chat */}
               <div className={`relative ${isGeneralDisabled ? "opacity-50" : ""}`}>
