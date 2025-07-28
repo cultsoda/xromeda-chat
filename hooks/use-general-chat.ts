@@ -69,6 +69,10 @@ export function useGeneralChat() {
   // 이모지 반응 관련 상태 추가
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
 
+  const resetChatHistory = () => {
+    setMessages([])
+  }
+
   useEffect(() => {
     // 참여자 수 실시간 업데이트
     const participantInterval = setInterval(() => {
@@ -239,5 +243,6 @@ export function useGeneralChat() {
     selectedMessageId,
     setSelectedMessageId,
     addReaction,
+    resetChatHistory,
   }
 }

@@ -81,6 +81,19 @@ export default function CreatorDashboard() {
     setChatRooms((prev) => [...prev, newRoom])
   }
 
+  const handleChatManagement = (roomType: string) => {
+    const isMobile = window.innerWidth < 1024
+    const url = `/admin/chat-live?room=${roomType}`
+    
+    if (isMobile) {
+      // 모바일: 새 탭
+      window.open(url, '_blank')
+    } else {
+      // PC: 새 창
+      window.open(url, '_blank', 'width=800,height=600,resizable=yes,scrollbars=yes')
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation */}
@@ -270,13 +283,7 @@ export default function CreatorDashboard() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => {
-                        if (room.type === "creator-only") {
-                          setShowCreatorChatManagement(true)
-                        } else {
-                          setShowGeneralChatManagement(true)
-                        }
-                      }}
+                      onClick={() => handleChatManagement(room.type)}
                     >
                       <Settings className="w-4 h-4 mr-1" />
                       채팅 관리하기

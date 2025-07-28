@@ -28,6 +28,10 @@ export function useCreatorChat() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  const resetChatHistory = () => {
+    setMessages([])
+  }
+
   useEffect(() => {
     // 실시간 참여자 수 업데이트
     const participantInterval = setInterval(() => {
@@ -95,5 +99,6 @@ export function useCreatorChat() {
     addReaction,
     scrollRef,
     scrollToBottom,
+    resetChatHistory,
   }
 }

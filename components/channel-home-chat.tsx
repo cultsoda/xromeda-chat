@@ -5,24 +5,61 @@ import { Badge } from "@/components/ui/badge"
 import { Users, MessageCircle, Crown, Volume2, Bell, Megaphone } from "lucide-react"
 import { useChatContext } from "@/context/chat-context"
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import CreatorOnlyChat from "./creator-only-chat"
 import GeneralChat from "./general-chat"
+import SidebarChat from "./sidebar-chat"
+import MobileChatMinibar from "./mobile-chat-minibar"
 
 export default function ChannelHomeChatTab() {
-  const { setActiveChatRoom } = useChatContext()
+  const { setActiveChatRoom, chatUIState, setChatUIState, joinChatRoom, leaveChatRoom } = useChatContext()
   const { participantCounts, latestMessages } = useRealtimeUpdates()
   const [activeTab, setActiveTab] = useState("채팅")
   const [showCreatorChat, setShowCreatorChat] = useState(false)
   const [showGeneralChat, setShowGeneralChat] = useState(false)
+  
+  // 화면 크기 감지 추가
+  const [windowWidth, setWindowWidth] = useState(0)
+  
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth)
+    handleResize()
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+  
+  const isMobile = windowWidth < 1024
 
   const handleJoinChat = (chatType: string) => {
-    if (chatType === "creator-only") {
-      setShowCreatorChat(true)
-    } else if (chatType === "live-chat") {
-      setShowGeneralChat(true)
+    if (isMobile) {
+      // 모바일: 기존 방식 유지
+      if (chatType === "creator-only") {
+        setShowCreatorChat(true)
+      } else if (chatType === "live-chat") {
+        setShowGeneralChat(true)
+      }
     } else {
-      console.log(`Joining ${chatType} chat`)
+      // PC: 사이드바 채팅창 활성화
+      joinChatRoom(chatType)
+    }
+  }
+
+  // 탭 변경 핸들러 수정
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    
+    if (isMobile && chatUIState.isActive) {
+      if (tab !== "채팅") {
+        setChatUIState(prev => ({
+          ...prev,
+          isMiniBar: true
+        }))
+      } else {
+        setChatUIState(prev => ({
+          ...prev,
+          isMiniBar: false
+        }))
+      }
     }
   }
 
@@ -37,7 +74,7 @@ export default function ChannelHomeChatTab() {
             {tabs.map((tab) => (
               <button
                 key={tab}
-                onClick={() => setActiveTab(tab)}
+                onClick={() => handleTabChange(tab)}
                 className={`flex-shrink-0 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === tab
                     ? "text-purple-600 border-purple-600"
@@ -171,30 +208,30 @@ export default function ChannelHomeChatTab() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Quick Stats */}
-        {/*}
-        <Card className="border-0 shadow-md bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-3">실시간 채팅 현황</h3>
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              <div className="text-center">
-                <div className="text-lg font-bold">{participantCounts["live-chat"]}</div>
-                <div className="opacity-90 text-xs">활성 사용자</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold">15.4K</div>
-                <div className="opacity-90 text-xs">총 메시지</div>
-              </div>
-              <div className="text-center">
-                <div className="text-lg font-bold">{participantCounts["creator-only"]}</div>
-                <div className="opacity-90 text-xs">라이브 시청</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        */}
       </div>
+
+      {/* PC용 사이드바 채팅창 */}
+      {!isMobile && chatUIState.isActive && (
+        <div className="fixed right-0 top-0 h-full z-40">
+          <SidebarChat 
+            roomType={chatUIState.currentRoom || ""}
+            isMinimized={chatUIState.isMinimized}
+            onMinimize={() => setChatUIState(prev => ({...prev, isMinimized: !prev.isMinimized}))}
+            onClose={() => leaveChatRoom()}
+          />
+        </div>
+      )}
+
+      {/* 모바일용 미니바 */}
+      {isMobile && chatUIState.isMiniBar && (
+        <MobileChatMinibar 
+          participantCount={participantCounts[chatUIState.currentRoom] || 0}
+          latestMessage={latestMessages[chatUIState.currentRoom] || ""}
+          onExpand={() => setChatUIState(prev => ({...prev, isMiniBar: false}))}
+          onClose={() => leaveChatRoom()}
+        />
+      )}
+
       {/* Creator Only Chat Modal */}
       <CreatorOnlyChat isOpen={showCreatorChat} onClose={() => setShowCreatorChat(false)} />
       {/* General Chat Modal */}

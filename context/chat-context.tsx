@@ -15,6 +15,16 @@ interface ChatContextType {
   blockUser: (userId: string) => void
   createChatRoom: (name: string, type: "creator-only" | "general") => void
   endChatRoom: (roomId: string) => void
+  chatUIState: {
+    isActive: boolean
+    isMinimized: boolean
+    isMiniBar: boolean
+    currentRoom: string | null
+    joinTime: number | null
+  }
+  setChatUIState: (state: any) => void
+  joinChatRoom: (roomId: string) => void
+  leaveChatRoom: () => void
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined)
@@ -65,6 +75,34 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
     blockedUsers: 23,
     deletedMessages: 156,
   })
+
+  const [chatUIState, setChatUIState] = useState({
+    isActive: false,
+    isMinimized: false,
+    isMiniBar: false,
+    currentRoom: null,
+    joinTime: null,
+  })
+
+  const joinChatRoom = (roomId: string) => {
+    setChatUIState({
+      isActive: true,
+      isMinimized: false,
+      isMiniBar: false,
+      currentRoom: roomId,
+      joinTime: Date.now(),
+    })
+  }
+
+  const leaveChatRoom = () => {
+    setChatUIState({
+      isActive: false,
+      isMinimized: false,
+      isMiniBar: false,
+      currentRoom: null,
+      joinTime: null,
+    })
+  }
 
   const sendMessage = (roomId: string, content: string, type: "text" | "emoji" = "text") => {
     const newMessage: ChatMessage = {
@@ -139,6 +177,10 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         blockUser,
         createChatRoom,
         endChatRoom,
+        chatUIState,
+        setChatUIState,
+        joinChatRoom,
+        leaveChatRoom,
       }}
     >
       {children}
