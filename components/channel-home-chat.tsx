@@ -3,13 +3,27 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageCircle, Crown, Volume2, Bell, Megaphone, ChevronUp, X, Minus, Clock } from "lucide-react"
+import {
+  Users,
+  MessageCircle,
+  Crown,
+  Volume2,
+  Bell,
+  Megaphone,
+  ChevronUp,
+  X,
+  Minus,
+  Clock,
+  Smile,
+  Send,
+} from "lucide-react"
 import { useChatContext } from "@/context/chat-context"
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 import { useState, useEffect } from "react"
 import CreatorOnlyChat from "./creator-only-chat"
 import GeneralChat from "./general-chat"
 import ConfirmationModal from "./confirmation-modal"
+import { Input } from "@/components/ui/input"
 
 export default function ChannelHomeChatTab() {
   const { setActiveChatRoom, chatUIState, setChatUIState, joinChatRoom, leaveChatRoom } = useChatContext()
@@ -18,28 +32,28 @@ export default function ChannelHomeChatTab() {
   const [showCreatorChat, setShowCreatorChat] = useState(false)
   const [showGeneralChat, setShowGeneralChat] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
-  
+
   // 화면 크기 감지
   const [windowWidth, setWindowWidth] = useState(0)
-  
+
   // 방송 시작 시간 (실제로는 서버에서 받아와야 함)
   const [broadcastStartTime] = useState(new Date(Date.now() - 6 * 60 * 60 * 1000)) // 6시간 전
   const [creatorChatStartTime] = useState(new Date(Date.now() - 2 * 60 * 60 * 1000)) // 2시간 전
-  
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth)
     handleResize()
-    window.addEventListener('resize', handleResize)
-    return () => window.removeEventListener('resize', handleResize)
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
   }, [])
-  
+
   const isMobile = windowWidth < 1024
 
   // 시간 경과 계산 함수
   const getTimeElapsed = (startTime: Date) => {
     const now = new Date()
     const diffInMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60))
-    
+
     if (diffInMinutes < 60) {
       return `${diffInMinutes}분 전 시작`
     } else {
@@ -52,13 +66,13 @@ export default function ChannelHomeChatTab() {
     if (isMobile) {
       // 모바일: 풀스크린 채팅으로 바로 이동
       setChatUIState({
-        isActive: true,  
+        isActive: true,
         isMinimized: false,
         isMiniBar: false,
         currentRoom: chatType,
         joinTime: Date.now(),
       })
-      
+
       if (chatType === "creator-only") {
         setShowCreatorChat(true)
       } else if (chatType === "live-chat") {
@@ -75,7 +89,7 @@ export default function ChannelHomeChatTab() {
     setShowCreatorChat(false)
     setShowGeneralChat(false)
     // 풀스크린 종료 → 최소화로 전환
-    setChatUIState(prev => ({...prev, isMiniBar: true}))
+    setChatUIState((prev) => ({ ...prev, isMiniBar: true }))
   }
 
   // 최소화 상태에서 나가기 핸들러
@@ -91,7 +105,7 @@ export default function ChannelHomeChatTab() {
 
   // 최소화 영역 클릭으로 풀스크린 복귀
   const handleMiniBarExpand = () => {
-    setChatUIState(prev => ({...prev, isMiniBar: false}))
+    setChatUIState((prev) => ({ ...prev, isMiniBar: false }))
     if (chatUIState.currentRoom === "creator-only") {
       setShowCreatorChat(true)
     } else if (chatUIState.currentRoom === "live-chat") {
@@ -131,13 +145,13 @@ export default function ChannelHomeChatTab() {
 
       {/* Main Content Area */}
       <div className="max-w-7xl mx-auto">
-        <div className={`flex ${!isMobile && chatUIState.isActive ? 'gap-6' : 'justify-center'}`}>
+        <div className={`flex ${!isMobile && chatUIState.isActive ? "gap-6" : "justify-center"}`}>
           {/* Left Content */}
-          <div className={`p-4 space-y-4 transition-all duration-300 ${
-            !isMobile && chatUIState.isActive 
-              ? 'flex-1 max-w-3xl' 
-              : 'w-full max-w-md'
-          }`}>
+          <div
+            className={`p-4 space-y-4 transition-all duration-300 ${
+              !isMobile && chatUIState.isActive ? "flex-1 max-w-3xl" : "w-full max-w-md"
+            }`}
+          >
             {/* Creator Profile Header */}
             <div className="text-center py-4">
               <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
@@ -150,7 +164,7 @@ export default function ChannelHomeChatTab() {
             {/* Popular Content Section - 삭제됨 */}
 
             {/* Announcement Section - 2분할시 맨 위로 */}
-            {(!isMobile && chatUIState.isActive) && (
+            {!isMobile && chatUIState.isActive && (
               <Card className="border-l-4 border-l-blue-500 bg-blue-50 mb-4">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
@@ -163,7 +177,7 @@ export default function ChannelHomeChatTab() {
             )}
 
             {/* 2분할시 라이브 채팅 카드만 표시 */}
-            {(!isMobile && chatUIState.isActive) && (
+            {!isMobile && chatUIState.isActive && (
               <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300">
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
@@ -214,7 +228,7 @@ export default function ChannelHomeChatTab() {
             )}
 
             {/* Chat Rooms - Always show, but hide on PC when chat is active */}
-            {!((!isMobile && chatUIState.isActive)) && (
+            {!(!isMobile && chatUIState.isActive) && (
               <div className="space-y-4">
                 {/* Creator Only Chat */}
                 <Card className="overflow-hidden border-0 shadow-md hover:shadow-lg transition-all duration-300">
@@ -330,12 +344,12 @@ export default function ChannelHomeChatTab() {
 
           {/* PC Right Sidebar Chat */}
           {!isMobile && chatUIState.isActive && !chatUIState.isMinimized && (
-            <div className="w-96 sticky top-16 h-[calc(100vh-4rem)]">
-              <SidebarChat 
+            <div className="flex-1 sticky top-16 h-[calc(100vh-4rem)]">
+              <SidebarChat
                 roomType={chatUIState.currentRoom || ""}
                 onClose={() => {
                   // PC에서 끄기 누르면 2분할 복구하고 최소화로 전환
-                  setChatUIState(prev => ({...prev, isMinimized: true}))
+                  setChatUIState((prev) => ({ ...prev, isMinimized: true }))
                 }}
               />
             </div>
@@ -344,33 +358,35 @@ export default function ChannelHomeChatTab() {
       </div>
 
       {/* PC Minimized Chat (우하단) */}
-      {!isMobile && chatUIState.isActive && chatUIState.isMinimized && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <PCMinimizedChat
-            roomType={chatUIState.currentRoom || ""}
-            participantCount={participantCounts[chatUIState.currentRoom] || 0}
-            latestMessage={latestMessages[chatUIState.currentRoom] || ""}
-            onExpand={() => setChatUIState(prev => ({...prev, isMinimized: false}))}
-            onClose={() => setShowExitConfirm(true)}
-          />
-        </div>
-      )}
+      {!isMobile &&
+        chatUIState.isActive &&
+        chatUIState.isMinimized &&
+        chatUIState.currentRoom && (
+          <div className="fixed bottom-4 right-4 z-50">
+            <PCMinimizedChat
+              roomType={chatUIState.currentRoom}
+              participantCount={participantCounts[chatUIState.currentRoom as keyof typeof participantCounts] || 0}
+              latestMessage={latestMessages[chatUIState.currentRoom as keyof typeof latestMessages] || ""}
+              onExpand={() => setChatUIState((prev) => ({ ...prev, isMinimized: false }))}
+              onClose={() => setShowExitConfirm(true)}
+            />
+          </div>
+        )}
 
       {/* Mobile Mini Chat Bar - 채팅이 활성화되어 있으면 항상 표시 */}
-      {isMobile && chatUIState.isActive && chatUIState.isMiniBar && (
+      {isMobile && chatUIState.isActive && chatUIState.isMiniBar && chatUIState.currentRoom && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-50">
           <div className="flex items-center justify-between">
-            <div 
-              className="flex-1 cursor-pointer" 
-              onClick={handleMiniBarExpand}
-            >
+            <div className="flex-1 cursor-pointer" onClick={handleMiniBarExpand}>
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                <span className="text-sm font-medium">채팅 중 • {participantCounts[chatUIState.currentRoom] || 0}명 참여</span>
+                <span className="text-sm font-medium">
+                  채팅 중 • {participantCounts[chatUIState.currentRoom as keyof typeof participantCounts] || 0}명 참여
+                </span>
                 <ChevronUp className="w-4 h-4 text-gray-400" />
               </div>
               <p className="text-xs text-gray-600 truncate">
-                최신: "{latestMessages[chatUIState.currentRoom] || ""}"
+                최신: "{latestMessages[chatUIState.currentRoom as keyof typeof latestMessages] || ""}"
               </p>
             </div>
             <Button size="sm" variant="ghost" onClick={handleMiniBarExit} className="ml-2">
@@ -381,14 +397,8 @@ export default function ChannelHomeChatTab() {
       )}
 
       {/* Mobile Chat Modals */}
-      <CreatorOnlyChat 
-        isOpen={showCreatorChat} 
-        onClose={handleMobileChatClose}
-      />
-      <GeneralChat 
-        isOpen={showGeneralChat} 
-        onClose={handleMobileChatClose}
-      />
+      <CreatorOnlyChat isOpen={showCreatorChat} onClose={handleMobileChatClose} />
+      <GeneralChat isOpen={showGeneralChat} onClose={handleMobileChatClose} />
 
       {/* Exit Confirmation Modal */}
       <ConfirmationModal
@@ -405,11 +415,15 @@ export default function ChannelHomeChatTab() {
 }
 
 // PC Sidebar Chat Component
-function SidebarChat({ roomType, onClose }: {
+function SidebarChat({
+  roomType,
+  onClose,
+}: {
   roomType: string
   onClose: () => void
 }) {
   const [currentMessage, setCurrentMessage] = useState("")
+  const [showEmojiPalette, setShowEmojiPalette] = useState(false)
   const [restrictionDemo, setRestrictionDemo] = useState<"none" | "cooldown" | "blocked" | "paused">("none")
   const [messages] = useState([
     {
@@ -419,36 +433,38 @@ function SidebarChat({ roomType, onClose }: {
       membershipLevel: "크리에이터",
       content: "안녕하세요! 오늘도 함께해주셔서 감사합니다 ✨",
       timestamp: "오후 10:29",
-      reactions: { "❤": 45, "👍": 23, "🔥": 67 }
+      reactions: { "❤": 45, "👍": 23, "🔥": 67 },
     },
     {
-      id: "2", 
+      id: "2",
       userName: "게임러버123",
       userType: "user",
       membershipLevel: "기본멤버십",
       content: "안녕하세요! 오늘 방송 재밌어요",
       timestamp: "오후 10:30",
-      reactions: { "👍": 12, "😊": 8 }
+      reactions: { "👍": 12, "😊": 8 },
     },
     {
       id: "3",
-      userName: "후원왕", 
+      userName: "후원왕",
       userType: "user",
       membershipLevel: "후원멤버십",
       content: "오늘도 화이팅하세요! 응원합니다 💪",
-      timestamp: "오후 10:31", 
-      reactions: { "💪": 34, "❤": 19, "👏": 15 }
+      timestamp: "오후 10:31",
+      reactions: { "💪": 34, "❤": 19, "👏": 15 },
     },
     {
       id: "4",
       userName: "익명팬",
-      userType: "user", 
+      userType: "user",
       membershipLevel: "기본멤버십",
       content: "이 ***** 정말 재밌네요! (필터링됨)",
       timestamp: "오후 10:32",
-      reactions: { "😂": 5, "👍": 3 }
-    }
+      reactions: { "😂": 5, "👍": 3 },
+    },
   ])
+
+  const emojiPalette = ["😊", "😂", "❤️", "👍", "👏", "🔥", "😍", "🤔", "😢", "🎉", "💪", "🎮", "✨", "🙌", "💯"]
 
   const handleSendMessage = () => {
     if (!currentMessage.trim()) return
@@ -539,9 +555,7 @@ function SidebarChat({ roomType, onClose }: {
         <div className="bg-red-50 border-b border-red-200 p-3">
           {restrictionDemo === "cooldown" && (
             <div className="flex items-center gap-2 text-red-700">
-              <span className="text-sm font-medium">
-                ⚠️ 1분 쿨타임이 적용되었습니다. (45초 남음)
-              </span>
+              <span className="text-sm font-medium">⚠️ 1분 쿨타임이 적용되었습니다. (45초 남음)</span>
             </div>
           )}
           {restrictionDemo === "blocked" && (
@@ -558,43 +572,47 @@ function SidebarChat({ roomType, onClose }: {
           )}
           {restrictionDemo === "paused" && (
             <div className="flex items-center gap-2 text-yellow-700">
-              <span className="text-sm font-medium">
-                🟡 전체 채팅 일시정지 - 남은 시간: 8분 32초
-              </span>
+              <span className="text-sm font-medium">🟡 전체 채팅 일시정지 - 남은 시간: 8분 32초</span>
             </div>
           )}
         </div>
       )}
-      
+
       {/* Chat Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((message) => (
           <div key={message.id} className="space-y-2">
             <div className="flex items-start gap-3">
               {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
-                message.userType === "creator" 
-                  ? "bg-gradient-to-r from-purple-500 to-pink-500" 
-                  : "bg-gray-400"
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-semibold ${
+                  message.userType === "creator"
+                    ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                    : "bg-gray-400"
+                }`}
+              >
                 {message.userName.charAt(0)}
               </div>
 
               <div className="flex-1 min-w-0">
                 {/* User Info */}
                 <div className="flex items-center gap-2 mb-1">
-                  <span className={`font-semibold text-sm ${
-                    message.userType === "creator" ? "text-purple-700" : "text-gray-900"
-                  }`}>
+                  <span
+                    className={`font-semibold text-sm ${
+                      message.userType === "creator" ? "text-purple-700" : "text-gray-900"
+                    }`}
+                  >
                     {message.userName}
                   </span>
-                  <Badge className={`text-xs ${
-                    message.userType === "creator" 
-                      ? "bg-purple-100 text-purple-700"
-                      : message.membershipLevel === "후원멤버십"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-gray-100 text-gray-600"
-                  }`}>
+                  <Badge
+                    className={`text-xs ${
+                      message.userType === "creator"
+                        ? "bg-purple-100 text-purple-700"
+                        : message.membershipLevel === "후원멤버십"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
                     {message.membershipLevel}
                   </Badge>
                   <span className="text-xs text-gray-500">{message.timestamp}</span>
@@ -629,23 +647,31 @@ function SidebarChat({ roomType, onClose }: {
       {/* Input Area */}
       <div className="p-4 border-t bg-white rounded-b-lg">
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowEmojiPalette(!showEmojiPalette)}
+            disabled={isInputDisabled()}
+            className="flex-shrink-0"
+          >
+            <Smile className="w-5 h-5" />
+          </Button>
           <div className="flex-1 relative">
-            <input
-              type="text"
+            <Input
               value={currentMessage}
               onChange={(e) => setCurrentMessage(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={getPlaceholderText()}
-              className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                isInputDisabled() 
-                  ? "border-red-300 bg-red-50 text-red-500 placeholder-red-400 cursor-not-allowed" 
-                  : "border-gray-300"
-              }`}
-              maxLength={500}
               disabled={isInputDisabled()}
+              maxLength={500}
+              className={`pr-12 ${
+                isInputDisabled()
+                  ? "border-red-300 bg-red-50 text-red-500 placeholder-red-400"
+                  : "focus:ring-purple-500 focus:border-transparent"
+              }`}
             />
             {!isInputDisabled() && (
-              <span className="absolute right-3 top-2 text-xs text-gray-400">
+              <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
                 {currentMessage.length}/500
               </span>
             )}
@@ -653,18 +679,46 @@ function SidebarChat({ roomType, onClose }: {
           <Button
             onClick={handleSendMessage}
             disabled={!currentMessage.trim() || isInputDisabled()}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 px-4 py-2"
+            size="icon"
+            className="flex-shrink-0 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
-            전송
+            <Send className="w-4 h-4" />
           </Button>
         </div>
+
+        {/* Emoji Palette */}
+        {showEmojiPalette && !isInputDisabled() && (
+          <Card className="mt-3 border-0 shadow-lg">
+            <CardContent className="p-4">
+              <div className="grid grid-cols-8 gap-2">
+                {emojiPalette.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => {
+                      setCurrentMessage((prev) => prev + emoji)
+                    }}
+                    className="w-10 h-10 rounded-xl hover:bg-gray-100 flex items-center justify-center text-2xl transition-all hover:scale-110 active:scale-95"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   )
 }
 
 // PC Minimized Chat Component (우하단)
-function PCMinimizedChat({ roomType, participantCount, latestMessage, onExpand, onClose }: {
+function PCMinimizedChat({
+  roomType,
+  participantCount,
+  latestMessage,
+  onExpand,
+  onClose,
+}: {
   roomType: string
   participantCount: number
   latestMessage: string
@@ -682,30 +736,16 @@ function PCMinimizedChat({ roomType, participantCount, latestMessage, onExpand, 
           <span className="text-xs text-gray-500">{participantCount}명</span>
         </div>
         <div className="flex gap-1">
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={onExpand} 
-            className="h-6 w-6 p-0"
-            title="채팅창 복구"
-          >
+          <Button size="sm" variant="ghost" onClick={onExpand} className="h-6 w-6 p-0" title="채팅창 복구">
             <ChevronUp className="w-3 h-3" />
           </Button>
-          <Button 
-            size="sm" 
-            variant="ghost" 
-            onClick={onClose} 
-            className="h-6 w-6 p-0"
-            title="채팅 나가기"
-          >
+          <Button size="sm" variant="ghost" onClick={onClose} className="h-6 w-6 p-0" title="채팅 나가기">
             <X className="w-3 h-3" />
           </Button>
         </div>
       </div>
       <div className="cursor-pointer" onClick={onExpand}>
-        <p className="text-xs text-gray-600 truncate">
-          최신: "{latestMessage}"
-        </p>
+        <p className="text-xs text-gray-600 truncate">최신: "{latestMessage}"</p>
       </div>
     </div>
   )
