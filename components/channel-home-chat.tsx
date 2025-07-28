@@ -3,12 +3,13 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Users, MessageCircle, Crown, Volume2, Bell, Megaphone, ChevronUp, X, Minus } from "lucide-react"
+import { Users, MessageCircle, Crown, Volume2, Bell, Megaphone, ChevronUp, X, Minus, Clock } from "lucide-react"
 import { useChatContext } from "@/context/chat-context"
 import { useRealtimeUpdates } from "@/hooks/use-realtime-updates"
 import { useState, useEffect } from "react"
 import CreatorOnlyChat from "./creator-only-chat"
 import GeneralChat from "./general-chat"
+import ConfirmationModal from "./confirmation-modal"
 
 export default function ChannelHomeChatTab() {
   const { setActiveChatRoom, chatUIState, setChatUIState, joinChatRoom, leaveChatRoom } = useChatContext()
@@ -16,9 +17,14 @@ export default function ChannelHomeChatTab() {
   const [activeTab, setActiveTab] = useState("채팅")
   const [showCreatorChat, setShowCreatorChat] = useState(false)
   const [showGeneralChat, setShowGeneralChat] = useState(false)
+  const [showExitConfirm, setShowExitConfirm] = useState(false)
   
   // 화면 크기 감지
   const [windowWidth, setWindowWidth] = useState(0)
+  
+  // 방송 시작 시간 (실제로는 서버에서 받아와야 함)
+  const [broadcastStartTime] = useState(new Date(Date.now() - 6 * 60 * 60 * 1000)) // 6시간 전
+  const [creatorChatStartTime] = useState(new Date(Date.now() - 2 * 60 * 60 * 1000)) // 2시간 전
   
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth)
@@ -29,26 +35,67 @@ export default function ChannelHomeChatTab() {
   
   const isMobile = windowWidth < 1024
 
+  // 시간 경과 계산 함수
+  const getTimeElapsed = (startTime: Date) => {
+    const now = new Date()
+    const diffInMinutes = Math.floor((now.getTime() - startTime.getTime()) / (1000 * 60))
+    
+    if (diffInMinutes < 60) {
+      return `${diffInMinutes}분 전 시작`
+    } else {
+      const hours = Math.floor(diffInMinutes / 60)
+      return `${hours}시간 전 시작`
+    }
+  }
+
   const handleJoinChat = (chatType: string) => {
     if (isMobile) {
-      // 모바일: 채팅 상태 설정하고 바로 풀스크린 열기
+      // 모바일: 풀스크린 채팅으로 바로 이동
       setChatUIState({
         isActive: true,  
         isMinimized: false,
-        isMiniBar: false, // 처음에는 풀스크린으로 시작
+        isMiniBar: false,
         currentRoom: chatType,
         joinTime: Date.now(),
       })
       
-      // 바로 풀스크린 채팅 열기
       if (chatType === "creator-only") {
         setShowCreatorChat(true)
       } else if (chatType === "live-chat") {
         setShowGeneralChat(true)
       }
     } else {
-      // PC: 사이드바 채팅창 활성화
+      // PC: 2분할 화면으로 채팅 활성화
       joinChatRoom(chatType)
+    }
+  }
+
+  // 모바일 채팅 종료 핸들러 (X 버튼)
+  const handleMobileChatClose = () => {
+    setShowCreatorChat(false)
+    setShowGeneralChat(false)
+    // 풀스크린 종료 → 최소화로 전환
+    setChatUIState(prev => ({...prev, isMiniBar: true}))
+  }
+
+  // 최소화 상태에서 나가기 핸들러
+  const handleMiniBarExit = () => {
+    setShowExitConfirm(true)
+  }
+
+  // 컨펌 후 나가기
+  const handleConfirmExit = () => {
+    leaveChatRoom()
+    setShowExitConfirm(false)
+  }
+
+  // 최소화 영역 클릭으로 풀스크린 복귀
+  const handleMiniBarExpand = () => {
+    setChatUIState(prev => ({...prev, isMiniBar: false}))
+    if (chatUIState.currentRoom === "creator-only") {
+      setShowCreatorChat(true)
+    } else if (chatUIState.currentRoom === "live-chat") {
+      setShowGeneralChat(true)
     }
   }
 
@@ -158,10 +205,16 @@ export default function ChannelHomeChatTab() {
                     </div>
 
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        <span className="font-medium">{participantCounts["creator-only"]}</span>명이 보고 있음
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          <span className="font-medium">{participantCounts["creator-only"]}</span>명이 보고 있음
+                        </span>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {getTimeElapsed(creatorChatStartTime)}
+                        </span>
+                      </div>
                     </div>
 
                     <Button
@@ -192,10 +245,16 @@ export default function ChannelHomeChatTab() {
                     </div>
 
                     <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-gray-500 flex items-center gap-1">
-                        <Users className="w-3 h-3" />
-                        <span className="font-medium text-green-600">{participantCounts["live-chat"]}</span>명 참여 중
-                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          <span className="font-medium text-green-600">{participantCounts["live-chat"]}</span>명 참여 중
+                        </span>
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {getTimeElapsed(broadcastStartTime)}
+                        </span>
+                      </div>
                     </div>
 
                     <Button
@@ -240,18 +299,32 @@ export default function ChannelHomeChatTab() {
           </div>
 
           {/* PC Right Sidebar Chat */}
-          {!isMobile && chatUIState.isActive && (
+          {!isMobile && chatUIState.isActive && !chatUIState.isMinimized && (
             <div className="w-96 sticky top-16 h-[calc(100vh-4rem)]">
               <SidebarChat 
                 roomType={chatUIState.currentRoom || ""}
-                isMinimized={chatUIState.isMinimized}
-                onMinimize={() => setChatUIState(prev => ({...prev, isMinimized: !prev.isMinimized}))}
-                onClose={() => leaveChatRoom()}
+                onClose={() => {
+                  // PC에서 끄기 누르면 2분할 복구하고 최소화로 전환
+                  setChatUIState(prev => ({...prev, isMinimized: true}))
+                }}
               />
             </div>
           )}
         </div>
       </div>
+
+      {/* PC Minimized Chat (우하단) */}
+      {!isMobile && chatUIState.isActive && chatUIState.isMinimized && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <PCMinimizedChat
+            roomType={chatUIState.currentRoom || ""}
+            participantCount={participantCounts[chatUIState.currentRoom] || 0}
+            latestMessage={latestMessages[chatUIState.currentRoom] || ""}
+            onExpand={() => setChatUIState(prev => ({...prev, isMinimized: false}))}
+            onClose={() => setShowExitConfirm(true)}
+          />
+        </div>
+      )}
 
       {/* Mobile Mini Chat Bar - 채팅이 활성화되어 있으면 항상 표시 */}
       {isMobile && chatUIState.isActive && chatUIState.isMiniBar && (
@@ -259,15 +332,7 @@ export default function ChannelHomeChatTab() {
           <div className="flex items-center justify-between">
             <div 
               className="flex-1 cursor-pointer" 
-              onClick={() => {
-                // 미니바 클릭 시 풀스크린 채팅 열기
-                setChatUIState(prev => ({...prev, isMiniBar: false}))
-                if (chatUIState.currentRoom === "creator-only") {
-                  setShowCreatorChat(true)
-                } else if (chatUIState.currentRoom === "live-chat") {
-                  setShowGeneralChat(true)
-                }
-              }}
+              onClick={handleMiniBarExpand}
             >
               <div className="flex items-center gap-2 mb-1">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
@@ -278,7 +343,7 @@ export default function ChannelHomeChatTab() {
                 최신: "{latestMessages[chatUIState.currentRoom] || ""}"
               </p>
             </div>
-            <Button size="sm" variant="ghost" onClick={() => leaveChatRoom()} className="ml-2">
+            <Button size="sm" variant="ghost" onClick={handleMiniBarExit} className="ml-2">
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -288,79 +353,113 @@ export default function ChannelHomeChatTab() {
       {/* Mobile Chat Modals */}
       <CreatorOnlyChat 
         isOpen={showCreatorChat} 
-        onClose={() => {
-          setShowCreatorChat(false)
-          // 풀스크린 채팅 종료 시 미니바로 전환
-          if (isMobile && chatUIState.isActive) {
-            setChatUIState(prev => ({...prev, isMiniBar: true}))
-          }
-        }} 
+        onClose={handleMobileChatClose}
       />
       <GeneralChat 
         isOpen={showGeneralChat} 
-        onClose={() => {
-          setShowGeneralChat(false)
-          // 풀스크린 채팅 종료 시 미니바로 전환
-          if (isMobile && chatUIState.isActive) {
-            setChatUIState(prev => ({...prev, isMiniBar: true}))
-          }
-        }} 
+        onClose={handleMobileChatClose}
+      />
+
+      {/* Exit Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showExitConfirm}
+        onClose={() => setShowExitConfirm(false)}
+        onConfirm={handleConfirmExit}
+        title="채팅 나가기"
+        message="채팅을 나가시겠어요? 이전 대화를 다시 보실 수 없어요."
+        confirmText="나가기"
+        confirmVariant="destructive"
       />
     </div>
   )
 }
 
 // PC Sidebar Chat Component
-function SidebarChat({ roomType, isMinimized, onMinimize, onClose }: {
+function SidebarChat({ roomType, onClose }: {
   roomType: string
-  isMinimized: boolean
-  onMinimize: () => void
   onClose: () => void
 }) {
   return (
-    <div className={`h-full bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col transition-all duration-300 ${
-      isMinimized ? 'w-16' : 'w-full'
-    }`}>
+    <div className="h-full bg-white border border-gray-200 rounded-lg shadow-lg flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-lg">
-        {!isMinimized && (
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-            <h3 className="font-semibold text-gray-900 text-sm">
-              {roomType === "creator-only" ? "크리에이터 전용" : "라이브 채팅"}
-            </h3>
-          </div>
-        )}
-        <div className="flex gap-1">
-          <Button size="sm" variant="ghost" onClick={onMinimize} className="h-8 w-8 p-0">
-            <Minus className="w-4 h-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0">
-            <X className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <h3 className="font-semibold text-gray-900 text-sm">
+            {roomType === "creator-only" ? "크리에이터 전용" : "라이브 채팅"}
+          </h3>
         </div>
+        <Button size="sm" variant="ghost" onClick={onClose} className="h-8 w-8 p-0">
+          <X className="w-4 h-4" />
+        </Button>
       </div>
       
       {/* Chat Content */}
-      {!isMinimized && (
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 p-4 bg-gray-50">
-            <div className="text-center text-gray-500 text-sm">
-              <p>채팅이 연결되었습니다</p>
-              <p className="text-xs mt-1">새로운 메시지부터 표시됩니다</p>
-            </div>
-          </div>
-          <div className="p-4 border-t bg-white">
-            <Button 
-              size="sm" 
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
-              onClick={() => {/* 채팅 입력 로직 */}}
-            >
-              채팅 입력하기
-            </Button>
+      <div className="flex-1 flex flex-col">
+        <div className="flex-1 p-4 bg-gray-50">
+          <div className="text-center text-gray-500 text-sm">
+            <p>채팅이 연결되었습니다</p>
+            <p className="text-xs mt-1">새로운 메시지부터 표시됩니다</p>
           </div>
         </div>
-      )}
+        <div className="p-4 border-t bg-white">
+          <Button 
+            size="sm" 
+            className="w-full bg-gradient-to-r from-purple-600 to-pink-600"
+            onClick={() => {/* 채팅 입력 로직 */}}
+          >
+            채팅 입력하기
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// PC Minimized Chat Component (우하단)
+function PCMinimizedChat({ roomType, participantCount, latestMessage, onExpand, onClose }: {
+  roomType: string
+  participantCount: number
+  latestMessage: string
+  onExpand: () => void
+  onClose: () => void
+}) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3 w-80 max-w-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+          <span className="text-sm font-medium">
+            {roomType === "creator-only" ? "크리에이터 전용" : "라이브 채팅"}
+          </span>
+          <span className="text-xs text-gray-500">{participantCount}명</span>
+        </div>
+        <div className="flex gap-1">
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={onExpand} 
+            className="h-6 w-6 p-0"
+            title="채팅창 복구"
+          >
+            <ChevronUp className="w-3 h-3" />
+          </Button>
+          <Button 
+            size="sm" 
+            variant="ghost" 
+            onClick={onClose} 
+            className="h-6 w-6 p-0"
+            title="채팅 나가기"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+      <div className="cursor-pointer" onClick={onExpand}>
+        <p className="text-xs text-gray-600 truncate">
+          최신: "{latestMessage}"
+        </p>
+      </div>
     </div>
   )
 }
