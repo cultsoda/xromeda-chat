@@ -25,9 +25,11 @@ import {
   Volume2,
   VolumeX,
   Shield,
-  Search
+  Search,
+  Square
 } from "lucide-react"
 import ContextMenu from "./context-menu"
+import ConfirmationModal from "./confirmation-modal"
 import type { ContextMenuPosition } from "@/types/creator-management"
 
 interface GeneralChatMessage {
@@ -135,11 +137,11 @@ export default function GeneralChatManagement({
 
   const [currentMessage, setCurrentMessage] = useState("")
   const [contextMenu, setContextMenu] = useState<ContextMenuPosition | null>(null)
-  const [showSettings, setShowSettings] = useState(false)
   const [newFilterWord, setNewFilterWord] = useState("")
   const [slowModeInput, setSlowModeInput] = useState("0")
   const [searchTerm, setSearchTerm] = useState("")
   const [showFilteredOnly, setShowFilteredOnly] = useState(false)
+  const [showEndChatConfirm, setShowEndChatConfirm] = useState(false)
   
   const scrollRef = useRef<HTMLDivElement>(null)
 
@@ -157,7 +159,13 @@ export default function GeneralChatManagement({
     }, 5000)
 
     const messageInterval = setInterval(() => {
-      if (Math.random() > 0.7 && !chatState.isPaused) {
+  if (Math.random() > 0.7 && !chatState.isPaused) {
+    const userId = `user-${Date.now()}`
+    
+    // 차단된 사용자는 메시지 보낼 수 없음
+    if (chatState.mutedUsers.includes(userId)) {
+      return
+    }
         const newMessages = [
           "ㅋㅋㅋㅋ",
           "재밌어요!",
@@ -171,7 +179,7 @@ export default function GeneralChatManagement({
 
         const newMessage: GeneralChatMessage = {
           id: `msg-${Date.now()}`,
-          userId: `user-${Date.now()}`,
+          userId: userId,
           userName: `팬${Math.floor(Math.random() * 1000)}`,
           userAvatar: "/placeholder.svg?height=40&width=40&text=팬",
           content: randomMessage,
@@ -217,19 +225,48 @@ export default function GeneralChatManagement({
   }
 
   const deleteMessage = (messageId: string) => {
-    setMessages(prev => prev.filter(msg => msg.id !== messageId))
-    setContextMenu(null)
-  }
+  setMessages(prev =>
+    prev.map(msg =>
+      msg.id === messageId 
+        ? { ...msg, content: "삭제된 메시지입니다.", isFiltered: true }
+        : msg
+    )
+  )
+  setChatState(prev => ({ ...prev, selectedMessageId: null }))
+  setContextMenu(null)
+}
 
   const blockUser = (userId: string, userName: string) => {
-    // 해당 사용자의 메시지들을 숨김 처리
-    setMessages(prev =>
-      prev.map(msg =>
-        msg.userId === userId ? { ...msg, content: "[차단된 사용자의 메시지]", isFiltered: true } : msg,
-      ),
-    )
-    setContextMenu(null)
+  // 해당 사용자의 메시지들을 숨김 처리
+  setMessages(prev =>
+    prev.map(msg =>
+      msg.userId === userId ? { ...msg, content: "[차단된 사용자의 메시지]", isFiltered: true } : msg,
+    ),
+  )
+  
+  // 차단된 사용자 목록에 추가 (1시간)
+  setChatState(prev => ({
+    ...prev,
+    mutedUsers: [...prev.mutedUsers, userId],
+    selectedMessageId: null
+  }))
+  
+  // 시스템 메시지 추가
+  const systemMessage = {
+    id: `system-${Date.now()}`,
+    userId: "system",
+    userName: "시스템",
+    userAvatar: "",
+    content: `${userName}님이 1시간 차단되었습니다.`,
+    timestamp: new Date(),
+    type: "system" as const,
+    membershipLevel: "basic" as const,
   }
+  
+  setMessages(prev => [...prev, systemMessage])
+  setContextMenu(null)
+}
+
 
   const muteUser = (userId: string) => {
     setChatState(prev => ({
@@ -285,6 +322,37 @@ export default function GeneralChatManagement({
       setMessages(prev => [...prev, systemMessage])
     }
   }
+
+  const handleEndChat = () => {
+  // 채팅방 종료 로직
+  console.log("채팅방이 종료되었습니다")
+  setShowEndChatConfirm(false)
+  
+  // 시스템 메시지 추가
+  const systemMessage: GeneralChatMessage = {
+    id: `system-${Date.now()}`,
+    userId: "system",
+    userName: "시스템",
+    userAvatar: "",
+    content: "채팅방이 종료되었습니다. 참여해주셔서 감사합니다!",
+    timestamp: new Date(),
+    type: "system",
+    membershipLevel: "basic",
+  }
+  
+  setMessages(prev => [...prev, systemMessage])
+  
+  // 실제로는 채팅방을 종료하고 관리 화면으로 돌아가는 로직
+  if (isFullPage) {
+    setTimeout(() => {
+      window.close()
+    }, 2000)
+  } else {
+    setTimeout(() => {
+      onClose()
+    }, 2000)
+  }
+}
 
   const addFilterWord = () => {
     if (newFilterWord.trim() && !chatState.filterWords.includes(newFilterWord.trim())) {
@@ -379,28 +447,10 @@ export default function GeneralChatManagement({
       <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between rounded-t-lg">
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 ${chatState.isPaused ? 'bg-yellow-500' : 'bg-green-500'} rounded-full animate-pulse`}></div>
-          <h1 className="text-lg font-semibold text-gray-900">일반 채팅 관리</h1>
+          <h1 className="text-lg font-semibold text-gray-900">모모리나의 라이브 채팅</h1>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowSettings(!showSettings)}
-            className="flex items-center gap-1"
-          >
-            <Settings className="w-4 h-4" />
-            설정
-          </Button>
-          <Button
-            size="sm"
-            variant={chatState.isPaused ? "default" : "outline"}
-            onClick={togglePause}
-            className="flex items-center gap-1"
-          >
-            {chatState.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
-            {chatState.isPaused ? "재개" : "일시정지"}
-          </Button>
-          <Badge className={`text-xs ${chatState.isPaused ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+           <Badge className={`text-xs ${chatState.isPaused ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
             {chatState.isPaused ? "🟡 일시정지" : "🟢 활성"}
           </Badge>
           <span className="text-sm text-gray-600 flex items-center gap-1">
@@ -413,105 +463,7 @@ export default function GeneralChatManagement({
         </div>
       </div>
 
-      {/* Settings Panel */}
-      {showSettings && (
-        <div className="bg-gray-50 border-b border-gray-200 p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* 슬로우 모드 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">슬로우 모드</label>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  value={slowModeInput}
-                  onChange={(e) => setSlowModeInput(e.target.value)}
-                  placeholder="초"
-                  className="w-20"
-                />
-                <Button size="sm" onClick={toggleSlowMode}>
-                  {chatState.isSlowModeActive ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                  {chatState.isSlowModeActive ? "해제" : "적용"}
-                </Button>
-              </div>
-              {chatState.isSlowModeActive && (
-                <p className="text-xs text-gray-500">{chatState.slowMode}초 간격으로 메시지 전송 제한</p>
-              )}
-            </div>
-
-            {/* 필터 단어 관리 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">금칙어 필터</label>
-              <div className="flex gap-2">
-                <Input
-                  value={newFilterWord}
-                  onChange={(e) => setNewFilterWord(e.target.value)}
-                  placeholder="단어 추가"
-                  className="flex-1"
-                  onKeyPress={(e) => e.key === "Enter" && addFilterWord()}
-                />
-                <Button size="sm" onClick={addFilterWord}>
-                  <Shield className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {chatState.filterWords.map(word => (
-                  <Badge key={word} variant="secondary" className="text-xs">
-                    {word}
-                    <button 
-                      onClick={() => removeFilterWord(word)}
-                      className="ml-1 hover:text-red-600"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* 검색 및 필터 */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">메시지 검색/필터</label>
-              <div className="flex gap-2">
-                <Input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="사용자명 또는 메시지 검색"
-                  className="flex-1"
-                />
-                <Button
-                  size="sm"
-                  variant={showFilteredOnly ? "default" : "outline"}
-                  onClick={() => setShowFilteredOnly(!showFilteredOnly)}
-                >
-                  <Filter className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          {/* 자동 조절 토글 */}
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={chatState.autoModeration}
-                onChange={(e) => setChatState(prev => ({ ...prev, autoModeration: e.target.checked }))}
-                className="rounded"
-              />
-              <span className="text-sm">자동 조절 활성화</span>
-            </label>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={chatState.restrictedMode}
-                onChange={(e) => setChatState(prev => ({ ...prev, restrictedMode: e.target.checked }))}
-                className="rounded"
-              />
-              <span className="text-sm">제한 모드 (멤버십 전용)</span>
-            </label>
-          </div>
-        </div>
-      )}
+     
 
       {/* Chat Status Info */}
       {chatState.isPaused && (
@@ -588,7 +540,10 @@ export default function GeneralChatManagement({
                       {Object.entries(message.reactions).map(([emoji, count]) => (
                         <button
                           key={emoji}
-                          onClick={() => addReaction(message.id, emoji)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addReaction(message.id, emoji);
+                          }}
                           className="flex items-center gap-1 px-2 py-1 rounded-full text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
                         >
                           <span>{emoji}</span>
@@ -605,32 +560,58 @@ export default function GeneralChatManagement({
                     </div>
                   )}
 
-                  {/* Emoji Selection */}
-                  {chatState.selectedMessageId === message.id && (
-                    <Card className="mt-2 border-0 shadow-lg">
-                      <CardContent className="p-3">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">이모지 반응</span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => selectMessage(message.id)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="grid grid-cols-5 gap-2">
-                          {emojiPalette.map((emoji) => (
-                            <button
-                              key={emoji}
-                              onClick={() => addReaction(message.id, emoji)}
-                              className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-xl transition-all hover:scale-110"
+                  {/* Emoji Selection and Management Menu */}
+                    {chatState.selectedMessageId === message.id && (
+                      <Card className="mt-2 border-0 shadow-lg">
+                        <CardContent className="p-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">이모지 반응</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => selectMessage(message.id)}
+                              className="h-6 w-6 p-0"
                             >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
+                              <X className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <div className="grid grid-cols-5 gap-2 mb-3">
+                            {emojiPalette.map((emoji) => (
+                              <button
+                                key={emoji}
+                                onClick={() => addReaction(message.id, emoji)}
+                                className="w-10 h-10 rounded-lg hover:bg-gray-100 flex items-center justify-center text-xl transition-all hover:scale-110"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+      
+                    {/* Management Actions - only show for user messages */}
+                        {message.type === "user" && (
+                          <div className="border-t pt-3">
+                            <div className="flex gap-2 justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => deleteMessage(message.id)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4 mr-1" />
+                                삭제
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => blockUser(message.userId, message.userName)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Ban className="w-4 h-4 mr-1" />
+                                차단 (1시간)
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   )}
@@ -648,24 +629,44 @@ export default function GeneralChatManagement({
             <span className="text-sm font-medium text-purple-800">크리에이터 메시지 입력</span>
           </div>
           <div className="flex gap-2">
-            <Input
-              value={currentMessage}
-              onChange={(e) => setCurrentMessage(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-              placeholder="팬들에게 메시지를 보내세요..."
-              className="flex-1"
-            />
-            <Button size="sm" onClick={sendMessage} disabled={!currentMessage.trim()}>
-              <Send className="w-4 h-4" />
-            </Button>
-            <Button 
-              size="sm" 
-              variant="outline" 
-              onClick={() => setChatState(prev => ({ ...prev, showEmojiPalette: !prev.showEmojiPalette }))}
-            >
-              <Smile className="w-4 h-4" />
-            </Button>
-          </div>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => setChatState(prev => ({ ...prev, showEmojiPalette: !prev.showEmojiPalette }))}
+              >
+                <Smile className="w-4 h-4" />
+              </Button>
+              <Input
+                value={currentMessage}
+                onChange={(e) => setCurrentMessage(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                placeholder="팬들에게 메시지를 보내세요..."
+                className="flex-1"
+              />
+              <Button size="sm" onClick={sendMessage} disabled={!currentMessage.trim()}>
+                <Send className="w-4 h-4" />
+              </Button>
+            </div>
+        </div>
+
+        {/* Chat Control Buttons */}
+        <div className="flex gap-2 justify-center">
+          <Button
+            variant={chatState.isPaused ? "default" : "outline"}
+            onClick={togglePause}
+            className="flex items-center gap-2"
+          >
+            {chatState.isPaused ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
+            {chatState.isPaused ? "채팅 재개" : "채팅 일시정지"}
+          </Button>
+          <Button
+            variant="destructive"
+            onClick={() => setShowEndChatConfirm(true)}
+            className="flex items-center gap-2"
+          >
+            <Square className="w-4 h-4" />
+            채팅방 종료
+          </Button>
         </div>
 
         {/* Emoji Palette */}
@@ -690,6 +691,17 @@ export default function GeneralChatManagement({
           </Card>
         )}
       </div>
+      
+      {/* End Chat Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showEndChatConfirm}
+        onClose={() => setShowEndChatConfirm(false)}
+        onConfirm={handleEndChat}
+        title="채팅방 종료"
+        message="채팅을 종료하시겠어요? 종료된 채팅은 복구할 수 없습니다."
+        confirmText="채팅방 종료"
+        confirmVariant="destructive"
+      />
 
       {/* Context Menu */}
       <ContextMenu
